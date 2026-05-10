@@ -1162,7 +1162,21 @@ async function maybePromptInstallDownloadedUpdate(state) {
   });
 
   if (result.response === 1) {
-    await installDownloadedUpdate();
+    try {
+      await installDownloadedUpdate();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logLine(`[update] auto install prompt failed: ${message}`);
+      setDesktopUpdateState({
+        status: UPDATE_STATUS.ERROR,
+        updateMode: UPDATE_MODE.AUTO,
+        currentVersion: resolveDesktopVersion(),
+        latestVersion: state.latestVersion || desktopUpdateState?.latestVersion || '',
+        releaseUrl: state.releaseUrl || desktopUpdateState?.releaseUrl || RELEASES_PAGE_URL,
+        checkedAt: new Date().toISOString(),
+        message: `更新安装失败：${message}。可先保存草稿并前往下载页，或稍后重试。`,
+      });
+    }
   }
 }
 
@@ -1558,5 +1572,8 @@ module.exports = {
   sanitizeReleaseUrl,
   stopBackend,
   __setBackendProcessForTest,
+  __setMainWindowForTest(mainWindowRef = null) {
+    mainWindow = mainWindowRef;
+  },
   waitForBackendExit,
 };

@@ -9,6 +9,7 @@ const path = require('node:path');
 function loadMainModule(t, options = {}) {
   const originalLoad = Module._load;
   const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+  const ipcMainHandlers = new Map();
   const fakeApp = {
     isPackaged: false,
     getVersion: () => '3.12.0',
@@ -20,12 +21,15 @@ function loadMainModule(t, options = {}) {
   };
   const fakeDialog = {
     showMessageBox: async () => ({ response: 0 }),
+    ...(options.dialog || {}),
   };
   const fakeShell = {
     openExternal: async () => true,
   };
   const fakeIpcMain = {
-    handle: () => undefined,
+    handle: (channel, handler) => {
+      ipcMainHandlers.set(channel, handler);
+    },
   };
   const fakeBrowserWindow = {
     getAllWindows: () => [],
@@ -47,6 +51,11 @@ function loadMainModule(t, options = {}) {
         nativeTheme: fakeNativeTheme,
       };
     }
+    if (request === 'electron-updater' && options.electronUpdater) {
+      return {
+        autoUpdater: options.electronUpdater,
+      };
+    }
     return originalLoad.call(this, request, parent, isMain);
   };
 
@@ -65,7 +74,9 @@ function loadMainModule(t, options = {}) {
     Object.defineProperty(process, 'platform', { ...originalPlatform, value: options.platform });
   }
 
-  return require('../main.js');
+  const mainModule = require('../main.js');
+  mainModule.__getIpcMainHandler = (channel) => ipcMainHandlers.get(channel);
+  return mainModule;
 }
 
 test('parseSemver accepts stable and prerelease tags', (t) => {
@@ -219,6 +230,72 @@ test('fetchLatestReleaseJson rejects when response stream errors', async (t) => 
 
   await assert.rejects(pending, /stream failed/);
   assert.equal(destroyed, true);
+});
+
+test('auto download prompt falls back to error when install path fails', async (t) => {
+  const updaterEvents = {};
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-updater-'));
+  const exeDir = path.join(tempRoot, 'app');
+  const exePath = path.join(exeDir, 'Daily Stock Analysis.exe');
+  const uninstallPath = path.join(exeDir, 'Uninstall Daily Stock Analysis.exe');
+  const originalRemove = fs.rmSync;
+  const fakeUpdater = {
+    autoDownload: true,
+    autoInstallOnAppQuit: false,
+    on: (event, handler) => {
+      updaterEvents[event] = handler;
+    },
+    checkForUpdates: async () => {
+      if (typeof updaterEvents['update-downloaded'] === 'function') {
+        await updaterEvents['update-downloaded']({
+          version: 'v3.13.0',
+          releaseDate: '2026-04-25T01:00:00Z',
+          releaseName: 'v3.13.0',
+        });
+      }
+    },
+    quitAndInstall: () => {
+      throw new Error('安装进程启动失败');
+    },
+  };
+
+  const mainModule = loadMainModule(t, {
+    dialog: {
+      showMessageBox: async () => ({ response: 1 }),
+    },
+    electronUpdater: fakeUpdater,
+    platform: 'win32',
+    app: {
+      isPackaged: true,
+      getPath: (name) => {
+        if (name === 'exe') {
+          return exePath;
+        }
+        return '/tmp/dsa-user-data';
+      },
+    },
+  });
+
+  fs.mkdirSync(exeDir, { recursive: true });
+  fs.writeFileSync(uninstallPath, '');
+
+  mainModule.__setMainWindowForTest({
+    isDestroyed: () => false,
+    webContents: {
+      send: () => undefined,
+    },
+  });
+
+  await mainModule.__getIpcMainHandler('desktop:check-for-updates')();
+  const state = await mainModule.__getIpcMainHandler('desktop:get-update-state')();
+
+  assert.equal(state.status, mainModule.UPDATE_STATUS.ERROR);
+  assert.match(state.message, /更新安装失败/);
+  assert.equal(state.updateMode, mainModule.UPDATE_MODE.AUTO);
+
+  t.after(() => {
+    originalRemove(tempRoot, { recursive: true, force: true });
+  });
 });
 
 test('desktop update backup list includes WAL and SHM artifacts', (t) => {
