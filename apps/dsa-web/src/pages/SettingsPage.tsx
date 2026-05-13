@@ -498,6 +498,15 @@ const SettingsPage: React.FC = () => {
   const desktopUpdateNotice = getDesktopUpdateNotice(desktopUpdateState);
   const shouldGuardActiveConfigPanel = activeCategory === 'notification' || activeCategory === 'agent';
   const activeConfigPanelErrorTitle = activeCategory === 'agent' ? 'Agent 设置' : '通知设置';
+  const settingsPanelDiagnosticHint = isDesktopRuntime ? (
+    <>
+      请查看并提供桌面端日志
+      <code className="mx-1 rounded bg-background/45 px-1 py-0.5 font-mono text-xs">desktop.log</code>
+      ，同时补充 release 版本、Windows 版本和触发入口。
+    </>
+  ) : (
+    <>请查看浏览器开发者工具控制台与后端日志，并补充 release 版本、浏览器版本和触发入口。</>
+  );
   const activeConfigPanel = activeItems.length ? (
     <SettingsSectionCard
       title="当前分类配置项"
@@ -783,6 +792,7 @@ const SettingsPage: React.FC = () => {
               <SettingsPanelErrorBoundary
                 title="通知测试"
                 resetKey={`notification-test:${configVersion}`}
+                diagnosticHint={settingsPanelDiagnosticHint}
               >
                 <NotificationTestPanel
                   items={rawActiveItems.map((item) => ({ key: item.key, value: String(item.value ?? '') }))}
@@ -795,6 +805,7 @@ const SettingsPage: React.FC = () => {
               <SettingsPanelErrorBoundary
                 title={activeConfigPanelErrorTitle}
                 resetKey={`${activeCategory}:${configVersion}`}
+                diagnosticHint={settingsPanelDiagnosticHint}
               >
                 {activeConfigPanel}
               </SettingsPanelErrorBoundary>

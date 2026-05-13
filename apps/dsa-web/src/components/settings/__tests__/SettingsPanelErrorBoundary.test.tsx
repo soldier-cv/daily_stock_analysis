@@ -3,8 +3,8 @@ import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsPanelErrorBoundary } from '../SettingsPanelErrorBoundary';
 
-function ThrowingPanel(): ReactElement {
-  throw new Error('mock settings panel crash');
+function ThrowingPanel({ message = 'mock settings panel crash' }: { message?: string }): ReactElement {
+  throw new Error(message);
 }
 
 describe('SettingsPanelErrorBoundary', () => {
@@ -16,9 +16,19 @@ describe('SettingsPanelErrorBoundary', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders a diagnostic desktop-log fallback when a settings panel throws', () => {
+  it('renders a configurable desktop-log diagnostic fallback when a settings panel throws', () => {
     render(
-      <SettingsPanelErrorBoundary title="通知设置" resetKey="notification">
+      <SettingsPanelErrorBoundary
+        title="通知设置"
+        resetKey="notification"
+        diagnosticHint={(
+          <>
+            请查看并提供桌面端日志
+            <code>desktop.log</code>
+            ，同时补充 release 版本、Windows 版本和触发入口。
+          </>
+        )}
+      >
         <ThrowingPanel />
       </SettingsPanelErrorBoundary>
     );
@@ -28,6 +38,24 @@ describe('SettingsPanelErrorBoundary', () => {
     expect(screen.getByText('desktop.log')).toBeInTheDocument();
     expect(screen.getByText(/release 版本、Windows 版本和触发入口/)).toBeInTheDocument();
     expect(screen.getByText(/错误摘要：mock settings panel crash/)).toBeInTheDocument();
+  });
+
+  it('redacts and truncates sensitive error summary text', () => {
+    render(
+      <SettingsPanelErrorBoundary title="通知设置" resetKey="notification">
+        <ThrowingPanel
+          message={`Webhook failed: https://notify.example.test/send?token=super-secret-token&foo=bar OPENAI_API_KEY=sk-supersecretvalue123456 ${'x'.repeat(220)}`}
+        />
+      </SettingsPanelErrorBoundary>
+    );
+
+    const summary = screen.getByText(/错误摘要：/).textContent ?? '';
+
+    expect(summary).toContain('?[redacted]');
+    expect(summary).toContain('OPENAI_API_KEY=[redacted]');
+    expect(summary).not.toContain('super-secret-token');
+    expect(summary).not.toContain('sk-supersecretvalue123456');
+    expect(summary.length).toBeLessThanOrEqual('错误摘要：'.length + 183);
   });
 
   it('resets after resetKey changes so the panel can render again', async () => {

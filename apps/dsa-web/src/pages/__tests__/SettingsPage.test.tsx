@@ -145,13 +145,20 @@ vi.mock('../../components/settings', () => ({
   SettingsLoading: () => <div>loading</div>,
   SettingsPanelErrorBoundary: ({
     title,
+    diagnosticHint,
     children,
   }: {
     title: string;
+    diagnosticHint?: React.ReactNode;
     children: React.ReactNode;
   }) => {
     settingsPanelErrorBoundary(title);
-    return <>{children}</>;
+    return (
+      <>
+        {diagnosticHint ? <div>{diagnosticHint}</div> : null}
+        {children}
+      </>
+    );
   },
   SettingsSectionCard: ({
     title,
@@ -648,6 +655,25 @@ describe('SettingsPage', () => {
     expect(screen.getByText('WECHAT_WEBHOOK_URL')).toBeInTheDocument();
     expect(settingsPanelErrorBoundary).toHaveBeenCalledWith('通知测试');
     expect(settingsPanelErrorBoundary).toHaveBeenCalledWith('通知设置');
+  });
+
+  it('uses browser and backend logs in settings panel diagnostic hints outside desktop runtime', () => {
+    useSystemConfigMock.mockReturnValue(buildSystemConfigState({ activeCategory: 'notification' }));
+
+    render(<SettingsPage />);
+
+    expect(screen.getAllByText(/浏览器开发者工具控制台与后端日志/)).toHaveLength(2);
+    expect(screen.queryByText('desktop.log')).not.toBeInTheDocument();
+  });
+
+  it('uses desktop log in settings panel diagnostic hints during desktop runtime', () => {
+    useSystemConfigMock.mockReturnValue(buildSystemConfigState({ activeCategory: 'notification' }));
+    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime();
+
+    render(<SettingsPage />);
+
+    expect(screen.getAllByText('desktop.log')).toHaveLength(2);
+    expect(screen.queryByText(/浏览器开发者工具控制台与后端日志/)).not.toBeInTheDocument();
   });
 
   it('renders env backup actions outside desktop runtime', () => {

@@ -8,11 +8,48 @@ interface SettingsPanelErrorBoundaryProps {
   children: ReactNode;
   resetKey?: string | number;
   className?: string;
+  diagnosticHint?: ReactNode;
 }
 
 interface SettingsPanelErrorBoundaryState {
   hasError: boolean;
-  errorMessage: string;
+  errorSummary: string;
+}
+
+const MAX_ERROR_SUMMARY_LENGTH = 180;
+
+function sanitizeUrlLikeText(value: string) {
+  return value.replace(/https?:\/\/[^\s"'<>]+/gi, (match) => {
+    try {
+      const url = new URL(match);
+      const sanitizedUrl = `${url.protocol}//${url.host}${url.pathname}`;
+      return `${sanitizedUrl}${url.search ? '?[redacted]' : ''}${url.hash ? '#[redacted]' : ''}`;
+    } catch {
+      return match.replace(/\?[^#\s"'<>]*/g, '?[redacted]').replace(/#[^\s"'<>]*/g, '#[redacted]');
+    }
+  });
+}
+
+function getSafeErrorSummary(error: unknown) {
+  const rawMessage = error instanceof Error
+    ? error.message
+    : typeof error === 'string'
+      ? error
+      : '未知前端运行时异常';
+  const normalized = rawMessage.replace(/\s+/g, ' ').trim() || '未知前端运行时异常';
+  const sanitized = sanitizeUrlLikeText(normalized)
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]{8,}/gi, 'Bearer [redacted]')
+    .replace(/\b(sk-[A-Za-z0-9_-]{8,})\b/g, '[redacted-key]')
+    .replace(
+      /\b([A-Z0-9_]*(?:api[_-]?key|token|secret|password|passwd|authorization|webhook(?:_url)?)\s*[:=]\s*)([^\s,;'"`]+)/gi,
+      '$1[redacted]'
+    );
+
+  if (sanitized.length <= MAX_ERROR_SUMMARY_LENGTH) {
+    return sanitized;
+  }
+
+  return `${sanitized.slice(0, MAX_ERROR_SUMMARY_LENGTH)}...`;
 }
 
 export class SettingsPanelErrorBoundary extends Component<
@@ -21,13 +58,13 @@ export class SettingsPanelErrorBoundary extends Component<
 > {
   override state: SettingsPanelErrorBoundaryState = {
     hasError: false,
-    errorMessage: '',
+    errorSummary: '',
   };
 
   static getDerivedStateFromError(error: unknown): SettingsPanelErrorBoundaryState {
     return {
       hasError: true,
-      errorMessage: error instanceof Error ? error.message : '未知前端运行时异常',
+      errorSummary: getSafeErrorSummary(error),
     };
   }
 
@@ -37,7 +74,7 @@ export class SettingsPanelErrorBoundary extends Component<
 
   override componentDidUpdate(prevProps: SettingsPanelErrorBoundaryProps) {
     if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
-      this.setState({ hasError: false, errorMessage: '' });
+      this.setState({ hasError: false, errorSummary: '' });
     }
   }
 
@@ -54,13 +91,16 @@ export class SettingsPanelErrorBoundary extends Component<
           message={(
             <div className="space-y-2">
               <p>
-                该设置区域发生前端运行时异常，页面其他设置仍可继续使用。请查看并提供桌面端日志
-                <code className="mx-1 rounded bg-background/45 px-1 py-0.5 font-mono text-xs">desktop.log</code>
-                ，同时补充 release 版本、Windows 版本和触发入口。
+                该设置区域发生前端运行时异常，页面其他设置仍可继续使用。
               </p>
-              {this.state.errorMessage ? (
+              {this.props.diagnosticHint ? (
+                <p>{this.props.diagnosticHint}</p>
+              ) : (
+                <p>请补充 release 版本、运行环境和触发入口，便于定位问题。</p>
+              )}
+              {this.state.errorSummary ? (
                 <p className="break-words font-mono text-xs opacity-80">
-                  错误摘要：{this.state.errorMessage}
+                  错误摘要：{this.state.errorSummary}
                 </p>
               ) : null}
             </div>
