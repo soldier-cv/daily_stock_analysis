@@ -470,6 +470,18 @@ class HistoryService:
                 record_id=record_id
             )
 
+        if getattr(record, "report_type", None) == "market_review":
+            markdown_report = raw_result.get("raw_response") or raw_result.get("market_review_report")
+            if isinstance(markdown_report, str) and markdown_report.strip():
+                return markdown_report
+            if record.news_content:
+                return record.news_content
+            logger.error(f"get_markdown_report: market review report is empty for {record_id}")
+            raise MarkdownReportGenerationError(
+                f"market review report is empty for record {record_id}",
+                record_id=record_id,
+            )
+
         try:
             result = self._rebuild_analysis_result(raw_result, record)
         except Exception as e:
