@@ -1065,8 +1065,9 @@ Sector text.
 
         result = ma._inject_data_into_review(review, overview)
 
-        assert "Advancers **3200**" in result
-        assert "Turnover **14567** (CNY 100m)" in result
+        assert "- **Market Signal**: 66/100 (constructive, risk-on)" in result
+        assert "- **Breadth**: Advancers 3200 / Decliners 1800 / Flat 100;" in result
+        assert "Turnover 14567 (CNY 100m)" in result
         assert "| Index | Last | Change % | Open | High | Low | Amplitude | Turnover (CNY 100m) |" in result
         assert "#### Leading Sectors" in result
         assert "| 1 | AI算力 | +3.25% |" in result
@@ -1120,18 +1121,21 @@ Sector text.
 
         result = ma._inject_data_into_review(review, overview, news)
 
-        assert "市场信号" in result
-        assert "绿灯（可进攻）" in result
+        assert "盘面信号" in result
+        assert "66/100（偏暖，可进攻）" in result
+        assert "绿灯（可进攻）" not in result
         assert "大盘红绿灯" not in result
         assert "green（可进攻）" not in result
         assert "信号依据" in result
-        signal_line = next(line for line in result.splitlines() if "**市场信号**" in line)
+        signal_line = next(line for line in result.splitlines() if "**盘面信号**" in line)
         drivers_line = next(line for line in result.splitlines() if "**信号依据**" in line)
-        assert "/100" not in signal_line
-        assert "█" not in signal_line
+        assert signal_line.startswith("- ")
+        assert "66/100" in signal_line
+        assert "█" not in result
+        assert "░" not in result
         assert "盘面温度" not in drivers_line
         assert "操作建议" in result
-        assert "盘面温度" in result
+        assert "盘面温度" not in result
         assert "| 上涨/下跌/平盘 | 3200 / 1800 / 100 |" in result
         assert "| 指数 | 最新 | 涨跌幅 | 开盘 | 最高 | 最低 | 振幅 | 成交额(亿) |" in result
         assert "| 上证指数 | 3300.00 | 🟢 +0.36% | 3288.00 | 3312.00 | 3276.00 | 1.10% | 1450 |" in result
@@ -1226,7 +1230,6 @@ Sector text.
         snapshot = ma.build_market_light_snapshot(overview)
 
         assert snapshot["status"] == "red"
-        assert snapshot["status_label"] == "红灯"
         assert snapshot["label"] == "偏防守"
         assert snapshot["score"] < 40
         assert any("亏钱效应" in reason for reason in snapshot["reasons"])
@@ -1252,8 +1255,7 @@ Sector text.
         snapshot = ma.build_market_light_snapshot(overview)
 
         assert snapshot["status"] == "red"
-        assert snapshot["status_label"] == "Red"
-        assert snapshot["label"] == "defensive"
+        assert snapshot["label"] == "risk-off"
         assert snapshot["guidance"] == (
             "Risk is elevated; prioritize drawdown control and avoid chasing weak rebounds."
         )

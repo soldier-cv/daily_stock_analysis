@@ -556,17 +556,15 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             light = self.build_market_light_snapshot(overview)
             return "\n".join(
                 [
-                    f"> **Market Signal**: {light['status_label']} ({light['label']})",
-                    f"> **Drivers**: {'; '.join(light['reasons'])}",
-                    f"> **Guidance**: {light['guidance']}",
+                    f"- **Market Signal**: {light['score']}/100 "
+                    f"({light['temperature_label']}, {light['label']})",
+                    f"- **Drivers**: {'; '.join(light['reasons'])}",
+                    f"- **Guidance**: {light['guidance']}",
                     "",
-                    f"> **Market Temperature**: {light['temperature_label']} "
-                    f"**{light['score']}/100** {self._build_temperature_bar(light['score'])}",
-                    "",
-                    f"> 📈 Advancers **{overview.up_count}** / Decliners **{overview.down_count}** / "
-                    f"Flat **{overview.flat_count}** | "
-                    f"Limit-up **{overview.limit_up_count}** / Limit-down **{overview.limit_down_count}** | "
-                    f"Turnover **{overview.total_amount:.0f}** ({self._get_turnover_unit_label()})",
+                    f"- **Breadth**: Advancers {overview.up_count} / Decliners {overview.down_count} / "
+                    f"Flat {overview.flat_count}; "
+                    f"Limit-up {overview.limit_up_count} / Limit-down {overview.limit_down_count}; "
+                    f"Turnover {overview.total_amount:.0f} ({self._get_turnover_unit_label()})",
                 ]
             )
         light = self.build_market_light_snapshot(overview)
@@ -575,11 +573,9 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
         up_ratio = overview.up_count / participation if participation else 0.0
         limit_spread = overview.limit_up_count - overview.limit_down_count
         lines = [
-            f"> **市场信号**：{light['status_label']}（{light['label']}）",
-            f"> **信号依据**：{'；'.join(light['reasons'])}",
-            f"> **操作建议**：{light['guidance']}",
-            "",
-            f"> **盘面温度**：{label} **{score}/100** {self._build_temperature_bar(score)}",
+            f"- **盘面信号**：{score}/100（{label}，{light['label']}）",
+            f"- **信号依据**：{'；'.join(light['reasons'])}",
+            f"- **操作建议**：{light['guidance']}",
             "",
             "| 指标 | 数值 | 观察 |",
             "|------|------|------|",
@@ -601,14 +597,9 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
 
         if self._get_review_language() == "en":
             label_map = {
-                "green": "constructive",
-                "yellow": "watch",
-                "red": "defensive",
-            }
-            status_label_map = {
-                "green": "Green",
-                "yellow": "Yellow",
-                "red": "Red",
+                "green": "risk-on",
+                "yellow": "balanced",
+                "red": "risk-off",
             }
             guidance_map = {
                 "green": "Risk appetite is acceptable; focus on leading themes and position discipline.",
@@ -622,11 +613,6 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 "yellow": "需观察",
                 "red": "偏防守",
             }
-            status_label_map = {
-                "green": "绿灯",
-                "yellow": "黄灯",
-                "red": "红灯",
-            }
             guidance_map = {
                 "green": "风险偏好尚可，关注主线延续与仓位纪律。",
                 "yellow": "信号分化，控制仓位并等待量价确认。",
@@ -636,7 +622,6 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
 
         return {
             "status": status,
-            "status_label": status_label_map[status],
             "label": label_map[status],
             "score": score,
             "temperature_label": temperature_label,
@@ -831,11 +816,6 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
     @staticmethod
     def _escape_table_cell(value: str) -> str:
         return value.replace("|", "\\|")
-
-    @staticmethod
-    def _build_temperature_bar(score: int) -> str:
-        filled = max(0, min(10, round(score / 10)))
-        return "█" * filled + "░" * (10 - filled)
 
     @staticmethod
     def _describe_turnover(total_amount: float) -> str:
