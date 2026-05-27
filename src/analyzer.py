@@ -1702,112 +1702,119 @@ class GeminiAnalyzer:
 {default_skill_policy_section}
 {skills_section}
 
-## 输出格式：决策仪表盘 JSON
+## ⚠️ 核心输出要求（必须严格遵守）
 
-请严格按照以下 JSON 格式输出，这是一个完整的【决策仪表盘】：
+**你必须输出一个严格的 JSON 对象，不要添加任何额外字段，不要改变字段名称。**
+
+**sniper_points 必须在 dashboard.battle_plan.sniper_points 下，禁止在顶级创建！**
+
+**字段名必须完全一致：ideal_buy、secondary_buy、stop_loss、take_profit**
+**禁止使用：buy_price、stop_loss_price、target_price、entry_price**
+
+## 输出格式：决策仪表盘 JSON
 
 ```json
 {
     "stock_name": "股票中文名称",
-    "sentiment_score": 0-100整数,
-    "trend_prediction": "强烈看多/看多/震荡/看空/强烈看空",
-    "operation_advice": "买入/加仓/持有/减仓/卖出/观望",
-    "decision_type": "buy/hold/sell",
-    "confidence_level": "高/中/低",
+    "sentiment_score": 50,
+    "trend_prediction": "震荡",
+    "operation_advice": "持有",
+    "decision_type": "hold",
+    "confidence_level": "中",
 
     "dashboard": {
         "core_conclusion": {
-            "one_sentence": "一句话核心结论（30字以内，直接告诉用户做什么）",
-            "signal_type": "🟢买入信号/🟡持有观望/🔴卖出信号/⚠️风险警告",
-            "time_sensitivity": "立即行动/今日内/本周内/不急",
+            "one_sentence": "一句话核心结论",
+            "signal_type": "🟡持有观望",
+            "time_sensitivity": "不急",
             "position_advice": {
-                "no_position": "空仓者建议：具体操作指引",
-                "has_position": "持仓者建议：具体操作指引"
+                "no_position": "空仓者建议",
+                "has_position": "持仓者建议"
             }
         },
 
         "data_perspective": {
             "trend_status": {
-                "ma_alignment": "均线排列状态描述",
-                "is_bullish": true/false,
-                "trend_score": 0-100
+                "ma_alignment": "均线排列描述",
+                "is_bullish": false,
+                "trend_score": 50
             },
             "price_position": {
-                "current_price": 当前价格数值,
-                "ma5": MA5数值,
-                "ma10": MA10数值,
-                "ma20": MA20数值,
-                "bias_ma5": 乖离率百分比数值,
-                "bias_status": "安全/警戒/危险",
-                "support_level": 支撑位价格,
-                "resistance_level": 压力位价格
+                "current_price": 20.32,
+                "ma5": 20.5,
+                "ma10": 20.8,
+                "ma20": 21.0,
+                "bias_ma5": -0.88,
+                "bias_status": "安全",
+                "support_level": 19.5,
+                "resistance_level": 22.0
             },
             "volume_analysis": {
-                "volume_ratio": 量比数值,
-                "volume_status": "放量/缩量/平量",
-                "turnover_rate": 换手率百分比,
-                "volume_meaning": "量能含义解读（如：缩量回调表示抛压减轻）"
+                "volume_ratio": 1.2,
+                "volume_status": "平量",
+                "turnover_rate": 5.0,
+                "volume_meaning": "量能解读"
             },
             "chip_structure": {
-                "profit_ratio": 获利比例,
-                "avg_cost": 平均成本,
-                "concentration": 筹码集中度,
-                "chip_health": "健康/一般/警惕"
+                "profit_ratio": 60.0,
+                "avg_cost": 20.5,
+                "concentration": "中",
+                "chip_health": "一般"
             }
         },
 
         "intelligence": {
-            "latest_news": "【最新消息】近期重要新闻摘要",
-            "risk_alerts": ["风险点1：具体描述", "风险点2：具体描述"],
-            "positive_catalysts": ["利好1：具体描述", "利好2：具体描述"],
-            "earnings_outlook": "业绩预期分析（基于年报预告、业绩快报等）",
-            "sentiment_summary": "舆情情绪一句话总结"
+            "latest_news": "最新消息摘要",
+            "risk_alerts": ["风险点1"],
+            "positive_catalysts": ["利好1"],
+            "earnings_outlook": "业绩预期",
+            "sentiment_summary": "舆情总结"
         },
 
         "battle_plan": {
             "sniper_points": {
-                "ideal_buy": "理想入场位：XX元（满足主要技能触发条件）",
-                "secondary_buy": "次优入场位：XX元（更保守或确认后执行）",
-                "stop_loss": "止损位：XX元（失效条件或X%风险）",
-                "take_profit": "目标位：XX元（按阻力位/风险回报比制定）"
+                "ideal_buy": "20.00元",
+                "secondary_buy": "19.50元",
+                "stop_loss": "19.00元",
+                "take_profit": "22.00元"
             },
             "position_strategy": {
-                "suggested_position": "建议仓位：X成",
-                "entry_plan": "分批建仓策略描述",
-                "risk_control": "风控策略描述"
+                "suggested_position": "3成",
+                "entry_plan": "分批建仓策略",
+                "risk_control": "风控策略"
             },
             "action_checklist": [
-                "✅/⚠️/❌ 检查项1：当前结构是否满足激活技能条件",
-                "✅/⚠️/❌ 检查项2：入场位置与风险回报是否合理",
-                "✅/⚠️/❌ 检查项3：量价/波动/筹码是否支持判断",
-                "✅/⚠️/❌ 检查项4：无重大利空",
-                "✅/⚠️/❌ 检查项5：仓位与止损计划明确",
-                "✅/⚠️/❌ 检查项6：估值/业绩/催化与结论匹配"
+                "✅ 检查项1",
+                "✅ 检查项2",
+                "⚠️ 检查项3",
+                "✅ 检查项4",
+                "✅ 检查项5",
+                "✅ 检查项6"
             ]
         }
     },
 
     "analysis_summary": "100字综合分析摘要",
-    "key_points": "3-5个核心看点，逗号分隔",
+    "key_points": "核心看点1, 核心看点2",
     "risk_warning": "风险提示",
-    "buy_reason": "操作理由，引用激活技能或风险框架",
+    "buy_reason": "操作理由",
 
-    "trend_analysis": "走势形态分析",
-    "short_term_outlook": "短期1-3日展望",
-    "medium_term_outlook": "中期1-2周展望",
-    "technical_analysis": "技术面综合分析",
-    "ma_analysis": "均线系统分析",
+    "trend_analysis": "走势分析",
+    "short_term_outlook": "短期展望",
+    "medium_term_outlook": "中期展望",
+    "technical_analysis": "技术面分析",
+    "ma_analysis": "均线分析",
     "volume_analysis": "量能分析",
-    "pattern_analysis": "K线形态分析",
+    "pattern_analysis": "形态分析",
     "fundamental_analysis": "基本面分析",
-    "sector_position": "板块行业分析",
-    "company_highlights": "公司亮点/风险",
+    "sector_position": "板块分析",
+    "company_highlights": "公司亮点",
     "news_summary": "新闻摘要",
     "market_sentiment": "市场情绪",
     "hot_topics": "相关热点",
 
-    "search_performed": true/false,
-    "data_sources": "数据来源说明"
+    "search_performed": false,
+    "data_sources": "数据来源"
 }
 ```
 
@@ -1817,38 +1824,36 @@ class GeminiAnalyzer:
 - ✅ 多个激活技能同时支持积极结论
 - ✅ 上行空间、触发条件与风险回报清晰
 - ✅ 关键风险已排查，仓位与止损计划明确
-- ✅ 重要数据和情报结论彼此一致
 
 ### 买入（60-79分）：
 - ✅ 主信号偏积极，但仍有少量待确认项
 - ✅ 允许存在可控风险或次优入场点
-- ✅ 需要在报告中明确补充观察条件
 
 ### 观望（40-59分）：
 - ⚠️ 信号分歧较大，或缺乏足够确认
 - ⚠️ 风险与机会大致均衡
-- ⚠️ 更适合等待触发条件或回避不确定性
 
 ### 卖出/减仓（0-39分）：
 - ❌ 主要结论转弱，风险明显高于收益
 - ❌ 触发了止损/失效条件或重大利空
-- ❌ 现有仓位更需要保护而不是进攻
 
 ## 决策仪表盘核心原则
 
 1. **核心结论先行**：一句话说清该买该卖
 2. **分持仓建议**：空仓者和持仓者给不同建议
-3. **精确狙击点**：必须给出具体价格，不说模糊的话
+3. **精确狙击点**：必须给出具体价格，格式为"XX元"
 4. **检查清单可视化**：用 ✅⚠️❌ 明确显示每项检查结果
 5. **风险优先级**：舆情中的风险点要醒目标出
 
-## 可操作性与稳定性约束
+## ⚠️ 最终提醒（必须遵守）
 
-- 不得仅因为单日涨跌或评分跨线就在“买入/卖出”之间剧烈切换。
-- 操作建议必须同时参考价格位置（支撑/压力位）、量能/筹码、主力资金流向和风险事件。
-- 股价位于支撑与压力之间、资金流不明确时，优先输出“持有/震荡/观望/洗盘观察”等可执行的中性建议；`decision_type` 仍保持 `hold`。
-- 只有在接近支撑确认或有效突破压力，且资金流/量价配合时，才能给出买入；接近压力且资金流出时不得追买。
-- 只有在跌破关键支撑、主力资金持续流出或风险显著放大时，才能给出卖出/减仓。"""
+1. **输出必须是有效的 JSON 对象**
+2. **sniper_points 必须在 dashboard.battle_plan.sniper_points 下**
+3. **字段名必须完全一致，禁止使用其他名称**
+4. **不要添加 JSON 中未定义的字段**
+5. **如果 decision_type 为 "sell"，sniper_points 可填写 "N/A"**
+
+"""
 
     TEXT_SYSTEM_PROMPT = """你是一位专业的股票分析助手。
 
