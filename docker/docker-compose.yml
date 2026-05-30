@@ -3,7 +3,6 @@
 # ===================================
 
 name: daily-stock-analysis
-version: '3.8'
 
 x-common: &common
   build:
