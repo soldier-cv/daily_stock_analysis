@@ -19,6 +19,11 @@ x-common: &common
     - /data/daily_stock_analysis/logs:/app/logs
     - /data/daily_stock_analysis/reports:/app/reports
     - /data/daily_stock_analysis/strategies:/app/strategies:ro
+    # Longbridge OAuth token cache persistence; entrypoint repairs container-side ownership for dsa user.
+    # Create /data/daily_stock_analysis/longbridge_tokens on the host before copying an authorized token cache into it.
+    - /data/daily_stock_analysis/longbridge_tokens:/home/dsa/.longbridge
+    # 如需覆盖前端静态资源，可挂载本地 static 目录
+    # - ../static:/app/static:ro
 
   environment:
     - TZ=Asia/Shanghai
